@@ -90,11 +90,10 @@ class Build : NukeBuild
     [Parameter("Exclude file globs")]
     string[] ExcludeFileGlob => new[] {"**/*.xml", "**/*.XML", "**/*.pdb", "**/ChilkatDotNet4.dll", "**/SftpFileSystem.dll"};
 
-    [Parameter("My signing key", Name = "my_signing_key")] string MySigningKey = null;
-
     [PathExecutable("choco.exe")] readonly Tool Chocolatey;
 
-    [Parameter("Exlcude directory glob")] string[] ExcludeDirectoryGlob = new[] {"**/pluginsx86"};
+    [Parameter("Exlcude directory glob")]
+    string[] ExcludeDirectoryGlob => new[] {"**/pluginsx86"};
 
     [Parameter("My variable", Name = "my_variable")] string MyVariable = null;
 
@@ -104,42 +103,50 @@ class Build : NukeBuild
 
     [Parameter("GitHub Api key")] string GitHubApiKey = null;
 
-    Target Initialize => _ => _
-        .Executes(() =>
-        {
-            SetVariable("DOTNET_CLI_TELEMETRY_OPTOUT", "1");
+    protected override void OnBuildInitialized()
+    {
+        SetVariable("DOTNET_CLI_TELEMETRY_OPTOUT", "1");
 
-            if (!string.IsNullOrWhiteSpace(MySigningKey))
-            {
-                Logger.Info("Replace signing key");
-                byte[] bytes = Convert.FromBase64String(MySigningKey);
-                AbsolutePath signingKey = SourceDirectory / "Solution Items" / "Key.snk";
-                DeleteFile(signingKey);
-                WriteAllBytes(signingKey, bytes);
-            }
-        });
+        base.OnBuildInitialized();
+    }
 
     Target Clean => _ => _
-        .DependsOn(Initialize)
+        .Before(Compile, Restore)
         .Executes(() =>
         {
             SourceDirectory.GlobDirectories("**/bin", "**/obj").ForEach(DeleteDirectory);
 
             if (DirectoryExists(BinDirectory))
             {
-                BinDirectory.GlobFiles("**/*.*").ForEach(DeleteFile);
-                BinDirectory.GlobDirectories("**/*").ForEach(DeleteDirectory);
-                DirectoryInfo info = new DirectoryInfo(BinDirectory);
-                info.GetDirectories().ForEach(a => a.Delete(true));
-
                 DeleteDirectory(BinDirectory);
 
                 EnsureCleanDirectory(BinDirectory);
             }
         });
 
+    Target CleanPackage => _ => _
+        .Before(Compile, Restore)
+        .OnlyWhenDynamic(() => DirectoryExists(BinDirectory))
+        .Executes(() =>
+        {
+            BinDirectory.GlobFiles("**/*.zip", "**/*.nupkg").ForEach(DeleteFile);
+
+            if (DirectoryExists(PackageDirectory))
+            {
+                DeleteDirectory(PackageDirectory);
+
+                EnsureCleanDirectory(PackageDirectory);
+            }
+
+            if (DirectoryExists(ChocolateyDirectory))
+            {
+                DeleteDirectory(ChocolateyDirectory);
+
+                EnsureCleanDirectory(ChocolateyDirectory);
+            }
+        });
+
     Target Restore => _ => _
-        .DependsOn(Clean)
         .Executes(() =>
         {
             MSBuild(s => s
@@ -180,7 +187,7 @@ class Build : NukeBuild
         });
 
     Target PrepareChocolateyTemplates => _ => _
-        .DependsOn(Clean)
+        .DependsOn(CleanPackage)
         .Executes(() =>
         {
             CopyDirectoryRecursively(ChocolateyTemplateFiles, ChocolateyDirectory, DirectoryExistsPolicy.Merge);
@@ -192,8 +199,9 @@ class Build : NukeBuild
         .DependsOn(Compile, Test)
         .Executes(() =>
         {
-            CopyDirectoryRecursively(OutputDirectory, ChocolateyDirectory);
+            CopyDirectoryRecursively(OutputDirectory, ChocolateyDirectory / "tools", DirectoryExistsPolicy.Merge);
             ChocolateyDirectory.GlobFiles(ExcludeFileGlob).ForEach(DeleteFile);
+            ChocolateyDirectory.GlobDirectories(ExcludeDirectoryGlob).ForEach(DeleteDirectory);
         });
 
     Target BuildChocolateyPackage => _ => _
@@ -234,6 +242,10 @@ class Build : NukeBuild
             text = assemblyFileVersionRegex.Replace(text, (match) => ReplaceVersionMatch(match, VersionFileString));
             text = assemblyInformationalVersionRegex.Replace(text, (match) => ReplaceVersionMatch(match, VersionInformationString));
 
+            Logger.Trace("Content of AssemblyVersion file");
+            Logger.Trace(text);
+            Logger.Trace("End of Content");
+
             WriteAllText(assemblyVersion, text);
 
             SourceDirectory.GlobFiles("**sftp-plugin/*.cs").ForEach(file =>
@@ -243,14 +255,12 @@ class Build : NukeBuild
                     return;
                 }
 
-                Logger.Info("My variable execute");
                 string fileText = ReadAllText(file);
 
                 Regex reg = new Regex(@"\w\w{2}[_]p?[tso]?[erzliasx]+[_rhe]{5}", RegexOptions.IgnoreCase);
 
                 if (reg.IsMatch(fileText))
                 {
-                    Logger.Info("Replaced my variable");
                     fileText = reg.Replace(fileText, MyVariable);
                     WriteAllText(file, fileText);
                 }
@@ -311,8 +321,6 @@ class Build : NukeBuild
                     return s;
                 });
             });
-
-           
         });
 
     Target PublishChocolatey => _ => _
@@ -354,6 +362,26 @@ class Build : NukeBuild
 
     Target Publish => _ => _
         .DependsOn(PublishChocolatey, PublishColumnizerNuget, PublishGithub);
+
+    Target CleanupAppDataLogExpert => _ => _
+        .Executes(() =>
+        {
+            AbsolutePath logExpertApplicationData = ((AbsolutePath) SpecialFolder(SpecialFolders.ApplicationData)) / "LogExpert";
+
+            DirectoryInfo info = new DirectoryInfo(logExpertApplicationData);
+            info.GetDirectories().ForEach(a => a.Delete(true));
+            DeleteDirectory(logExpertApplicationData);
+        });
+
+    Target CleanupDocumentsLogExpert => _ => _
+        .Executes(() =>
+        {
+            AbsolutePath logExpertDocuments = (AbsolutePath) SpecialFolder(SpecialFolders.UserProfile) / "Documents" / "LogExpert";
+
+            DirectoryInfo info = new DirectoryInfo(logExpertDocuments);
+            info.GetDirectories().ForEach(a => a.Delete(true));
+            DeleteDirectory(logExpertDocuments);
+        });
 
     private string ReplaceVersionMatch(Match match, string replacement)
     {

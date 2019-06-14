@@ -60,6 +60,11 @@
     </Compile>
     <Compile Include="Classes\Columnizer\SquareBracketColumnizer.cs" />
     <Compile Include="Classes\Columnizer\TimeFormatDeterminer.cs" />
+    <Compile Include="Classes\DateTimeParser\DateFormatPartAdjuster.cs" />
+    <Compile Include="Classes\DateTimeParser\Parser.cs" />
+    <Compile Include="Classes\DateTimeParser\Section.cs" />
+    <Compile Include="Classes\DateTimeParser\Token.cs" />
+    <Compile Include="Classes\DateTimeParser\Tokenizer.cs" />
     <Compile Include="Classes\Highlight\ActionEntry.cs" />
     <Compile Include="Classes\ArgParser.cs" />
     <Compile Include="Classes\Highlight\HilightMatchEntry.cs" />
@@ -98,6 +103,7 @@
     <Compile Include="Controls\LogWindow\LogWindowsPublic.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Extensions\IEnumerable.cs" />
     <Compile Include="Interface\BackgroundProcessCancelHandler.cs" />
     <Compile Include="Entities\Bookmark.cs" />
     <Compile Include="Entities\BookmarkCollection.cs" />
