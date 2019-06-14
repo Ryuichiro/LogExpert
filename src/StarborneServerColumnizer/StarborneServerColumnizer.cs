@@ -114,6 +114,9 @@ namespace Starborne
             columnizedLogLine.LogLine = line;
             columnizedLogLine.ColumnValues = new IColumn[14];
 
+            // 2019-05-21 14:38:00,535 [Host=XXX] [App=XXX] [TID=XXX] [Ctx=XXX] [lvl=XXX] [Cat=XXX] [Act=XXX] [PlayerGlobalId=XXX] [PlayerId=XXX] [EmpireId=XXX] [class=XXX]  [XXX] completed, took 265 ms (0 sec behind schedule)
+
+
             Column[] columns;
             if (line.FullLine.StartsWith("20"))
             {
@@ -136,57 +139,57 @@ namespace Starborne
                     },
                     new Column // Host
                     {
-                        FullValue =  GetValue(values, "Host", 1),
+                        FullValue =  GetValue(values, "Host"),
                         Parent = columnizedLogLine
                     },
                     new Column // Application
                     {
-                        FullValue =  GetValue(values, "App", 2),
+                        FullValue =  GetValue(values, "App"),
                         Parent = columnizedLogLine
                     },
                     new Column // Thread
                     {
-                        FullValue =  GetValue(values, "TID", 3),
+                        FullValue =  GetValue(values, "TID"),
                         Parent = columnizedLogLine
                     },
                     new Column // Context
                     {
-                        FullValue = GetValue(values, "Ctx", 4) ,
+                        FullValue = GetValue(values, "Ctx") ,
                         Parent = columnizedLogLine
                     },
                     new Column // Severity
                     {
-                        FullValue = GetValue(values, "lvl", 5) ,
+                        FullValue = GetValue(values, "lvl") ,
                         Parent = columnizedLogLine
                     },
                     new Column // Category
                     {
-                        FullValue = GetValue(values, "Cat", 6) ,
+                        FullValue = GetValue(values, "Cat") ,
                         Parent = columnizedLogLine
                     },
                     new Column // Activity
                     {
-                        FullValue = GetValue(values, "Act", 7) ,
+                        FullValue = GetValue(values, "Act") ,
                         Parent = columnizedLogLine
                     },
                     new Column // PlayerGolbalId
                     {
-                        FullValue = GetValue(values, "PlayerGlobalId", 8) ,
+                        FullValue = GetValue(values, "PlayerGlobalId") ,
                         Parent = columnizedLogLine
                     },
                     new Column // PlayerId
                     {
-                        FullValue = GetValue(values, "PlayerId", 9) ,
+                        FullValue = GetValue(values, "PlayerId") ,
                         Parent = columnizedLogLine
                     },
                     new Column // EmpireId
                     {
-                        FullValue = GetValue(values, "EmpireId", 10) ,
+                        FullValue = GetValue(values, "EmpireId") ,
                         Parent = columnizedLogLine
                     },
                     new Column // Class
                     {
-                        FullValue = GetValue(values, "class", 11) ,
+                        FullValue = GetValue(values, "class") ,
                         Parent = columnizedLogLine
                     },
                     new Column // Message
